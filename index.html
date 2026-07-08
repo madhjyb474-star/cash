@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>ميزانية العائلة</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1B5E20">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- ===== SPLASH / SETUP SCREEN ===== -->
+        <div id="setup-screen" class="screen active">
+            <div class="setup-container">
+                <div class="setup-icon">💰</div>
+                <h1>ميزانية العائلة</h1>
+                <p class="setup-subtitle">نظّم مصاريفك وحدد ميزانيتك بسهولة</p>
+                
+                <div class="setup-section">
+                    <h2>🏦 إعداد رصيد البداية</h2>
+                    <div class="input-group">
+                        <label>ما هو رصيدك الحالي؟</label>
+                        <div class="currency-input">
+                            <input type="number" id="initial-balance" placeholder="0" inputmode="numeric">
+                            <span class="currency-label">ل.س</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setup-section">
+                    <h2>👨‍👩‍👧‍👦 أفراد العائلة</h2>
+                    <p class="hint">أضف أفراد عائلتك لمتابعة مصاريفهم</p>
+                    <div class="family-setup-list" id="family-setup-list"></div>
+                    <div class="add-member-row">
+                        <input type="text" id="new-member-name" placeholder="اسم العضو الجديد" maxlength="20">
+                        <select id="new-member-role">
+                            <option value="ابن/ة">ابن/ة</option>
+                            <option value="أم">أم</option>
+                            <option value="أب">أب</option>
+                            <option value="أخرى">أخرى</option>
+                        </select>
+                        <button onclick="addFamilyMemberToSetup()" class="btn-add-small">+</button>
+                    </div>
+                </div>
+
+                <button onclick="finishSetup()" class="btn-primary btn-large">ابدأ الآن ✨</button>
+            </div>
+        </div>
+
+        <!-- ===== MAIN APP SCREEN ===== -->
+        <div id="main-screen" class="screen">
+            <!-- Header -->
+            <header class="app-header">
+                <div class="header-row">
+                    <h1>💰 ميزانية العائلة</h1>
+                    <button onclick="showExportModal()" class="btn-icon" title="تصدير البيانات">📤</button>
+                </div>
+                <div class="balance-card" id="balance-card">
+                    <div class="balance-amount">
+                        <span class="balance-label">الرصيد الحالي</span>
+                        <span class="balance-value" id="current-balance">0</span>
+                        <span class="balance-currency">ل.س</span>
+                    </div>
+                    <div class="balance-stats">
+                        <div class="stat">
+                            <span class="stat-label">إجمالي الدخل</span>
+                            <span class="stat-value income" id="total-income">0</span>
+                        </div>
+                        <div class="stat-divider"></div>
+                        <div class="stat">
+                            <span class="stat-label">إجمالي المصروف</span>
+                            <span class="stat-value expense" id="total-expense">0</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <button onclick="openAddExpense()" class="action-btn expense-action">
+                    <span class="action-icon">➖</span>
+                    <span>مصروف جديد</span>
+                </button>
+                <button onclick="openAddIncome()" class="action-btn income-action">
+                    <span class="action-icon">➕</span>
+                    <span>إضافة مال</span>
+                </button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs" id="tabs">
+                <button class="tab active" data-tab="summary">📊 الملخص</button>
+                <button class="tab" data-tab="transactions">📋 العمليات</button>
+                <button class="tab" data-tab="members">👨‍👩‍👧‍👦 الأفراد</button>
+            </div>
+
+            <!-- Tab Content: Summary -->
+            <div class="tab-content active" id="tab-summary">
+                <div class="section">
+                    <h3>🏷️ المصروفات حسب الفئة</h3>
+                    <div class="categories-grid" id="categories-grid"></div>
+                </div>
+                <div class="section">
+                    <h3>👨‍👩‍👧‍👦 المصروفات حسب الفرد</h3>
+                    <div class="members-grid" id="members-grid"></div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Transactions -->
+            <div class="tab-content" id="tab-transactions">
+                <div class="transactions-header">
+                    <div class="filter-row">
+                        <select id="filter-category" onchange="renderTransactions()">
+                            <option value="all">جميع الفئات</option>
+                        </select>
+                        <select id="filter-member" onchange="renderTransactions()">
+                            <option value="all">جميع الأفراد</option>
+                        </select>
+                    </div>
+                    <div class="filter-row">
+                        <input type="date" id="filter-date-from" onchange="renderTransactions()">
+                        <input type="date" id="filter-date-to" onchange="renderTransactions()">
+                    </div>
+                    <div class="transactions-search">
+                        <input type="text" id="search-transactions" placeholder="🔍 ابحث في العمليات..." oninput="renderTransactions()">
+                    </div>
+                </div>
+                <div class="transactions-list" id="transactions-list"></div>
+                <div class="empty-state" id="empty-transactions" style="display:none;">
+                    <div class="empty-icon">📋</div>
+                    <p>لا توجد عمليات بعد</p>
+                </div>
+            </div>
+
+            <!-- Tab Content: Members -->
+            <div class="tab-content" id="tab-members">
+                <div class="members-list" id="members-list"></div>
+                <div class="section">
+                    <h3>➕ إضافة عضو جديد</h3>
+                    <div class="add-member-form">
+                        <input type="text" id="add-member-name-input" placeholder="الاسم" maxlength="20">
+                        <select id="add-member-role-input">
+                            <option value="ابن/ة">ابن/ة</option>
+                            <option value="أم">أم</option>
+                            <option value="أب">أب</option>
+                            <option value="أخرى">أخرى</option>
+                        </select>
+                        <button onclick="addNewMember()" class="btn-primary">إضافة</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Navigation -->
+            <nav class="bottom-nav">
+                <button class="nav-btn active" data-tab="summary">📊</button>
+                <button class="nav-btn" data-tab="transactions">📋</button>
+                <button class="nav-btn" data-tab="members">👨‍👩‍👧‍👦</button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- ===== MODALS ===== -->
+
+    <!-- Add Expense Modal -->
+    <div class="modal-overlay" id="modal-expense">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>➖ تسجيل مصروف</h2>
+                <button class="modal-close" onclick="closeModal('modal-expense')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>المبلغ</label>
+                    <div class="currency-input">
+                        <input type="number" id="expense-amount" placeholder="0" inputmode="numeric" required>
+                        <span class="currency-label">ل.س</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>الفئة</label>
+                    <select id="expense-category" required>
+                        <option value="">اختر الفئة...</option>
+                        <option value="🥬 خضروات وفواكه">🥬 خضروات وفواكه</option>
+                        <option value="🍞 حاجات منزلية">🍞 حاجات منزلية</option>
+                        <option value="🍳 طبخ">🍳 طبخ</option>
+                        <option value="👕 ملابس">👕 ملابس</option>
+                        <option value="🍪 سناكس وحلويات">🍪 سناكس وحلويات</option>
+                        <option value="💊 صحة">💊 صحة</option>
+                        <option value="📚 دراسة">📚 دراسة</option>
+                        <option value="🚌 مواصلات">🚌 مواصلات</option>
+                        <option value="💡 كهرباء وماء">💡 كهرباء وماء</option>
+                        <option value="📱 موبايل وانترنت">📱 موبايل وانترنت</option>
+                        <option value="🧴 تنظيف وعناية">🧴 تنظيف وعناية</option>
+                        <option value="🎁 هدايا">🎁 هدايا</option>
+                        <option value="🏠 إيجار">🏠 إيجار</option>
+                        <option value="other">🔧 أخرى</option>
+                    </select>
+                </div>
+                <div class="form-group" id="custom-category-group" style="display:none;">
+                    <label>اسم الفئة</label>
+                    <input type="text" id="expense-custom-category" placeholder="مثال: فائدة بنك">
+                </div>
+                <div class="form-group">
+                    <label>لصالح من؟</label>
+                    <select id="expense-member">
+                        <option value="general">🏠 مصروف عام</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>التاريخ</label>
+                    <input type="date" id="expense-date">
+                </div>
+                <div class="form-group">
+                    <label>ملاحظات (اختياري)</label>
+                    <input type="text" id="expense-note" placeholder="مثال: اشتريت طماطم وباذنجان" maxlength="100">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal('modal-expense')" class="btn-secondary">إلغاء</button>
+                <button onclick="saveExpense()" class="btn-primary">حفظ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Income Modal -->
+    <div class="modal-overlay" id="modal-income">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>➕ إضافة مال</h2>
+                <button class="modal-close" onclick="closeModal('modal-income')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>المبلغ</label>
+                    <div class="currency-input">
+                        <input type="number" id="income-amount" placeholder="0" inputmode="numeric" required>
+                        <span class="currency-label">ل.س</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>المصدر</label>
+                    <select id="income-source">
+                        <option value="تحويل من الأب">🏦 تحويل من الأب</option>
+                        <option value="راتب">💰 راتب</option>
+                        <option value="مساعدة">🤝 مساعدة</option>
+                        <option value="بيع">🏷️ بيع</option>
+                        <option value="other">🔧 أخرى</option>
+                    </select>
+                </div>
+                <div class="form-group" id="custom-income-source-group" style="display:none;">
+                    <label>وصف المصدر</label>
+                    <input type="text" id="income-custom-source" placeholder="مثال: بيع أثاث قديم">
+                </div>
+                <div class="form-group">
+                    <label>التاريخ</label>
+                    <input type="date" id="income-date">
+                </div>
+                <div class="form-group">
+                    <label>ملاحظات (اختياري)</label>
+                    <input type="text" id="income-note" placeholder="مثال: تحويل شهر تموز" maxlength="100">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal('modal-income')" class="btn-secondary">إلغاء</button>
+                <button onclick="saveIncome()" class="btn-primary">حفظ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction Detail Modal -->
+    <div class="modal-overlay" id="modal-detail">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="detail-title">تفاصيل العملية</h2>
+                <button class="modal-close" onclick="closeModal('modal-detail')">✕</button>
+            </div>
+            <div class="modal-body" id="detail-body"></div>
+            <div class="modal-footer">
+                <button onclick="deleteCurrentTransaction()" class="btn-danger">🗑️ حذف</button>
+                <button onclick="closeModal('modal-detail')" class="btn-secondary">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div class="modal-overlay" id="modal-export">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>📤 تصدير البيانات</h2>
+                <button class="modal-close" onclick="closeModal('modal-export')">✕</button>
+            </div>
+            <div class="modal-body">
+                <p class="export-hint">يمكنك مشاركة البيانات مع باقي أفراد العائلة عن طريق نسخها ولصقها في الجهاز الآخر</p>
+                <div class="export-actions">
+                    <button onclick="exportData()" class="btn-primary btn-large">📤 تصدير البيانات</button>
+                    <div class="import-section">
+                        <label>🔗 لصق البيانات المستوردة:</label>
+                        <textarea id="import-data" placeholder="الصق البيانات هنا..." rows="4"></textarea>
+                        <button onclick="importData()" class="btn-secondary">📥 استيراد البيانات</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Delete Modal -->
+    <div class="modal-overlay" id="modal-confirm">
+        <div class="modal modal-small">
+            <div class="modal-header">
+                <h2>⚠️ تأكيد الحذف</h2>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message">هل أنت متأكد من حذف هذه العملية؟</p>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal('modal-confirm')" class="btn-secondary">لا، إلغاء</button>
+                <button id="confirm-btn" class="btn-danger">نعم، احذف</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+    "name": "ميزانية العائلة",
+    "short_name": "ميزانية العائلة",
+    "description": "تطبيق لتتبع مصاريف وميزانية العائلة",
+    "start_url": "/index.html",
+    "display": "standalone",
+    "background_color": "#F5F5F5",
+    "theme_color": "#1B5E20",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        }
+    ]
+}
