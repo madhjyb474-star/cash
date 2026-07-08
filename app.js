@@ -153,7 +153,7 @@ function renderSetupMembers() {
 
 function finishSetup() {
     const balanceInput = document.getElementById('initial-balance');
-    const balance = parseFloat(balanceInput.value) || 0;
+    const balance = cleanNumber(balanceInput.value);
 
     if (balance < 0) {
         showToast('⚠️ الرصيد لا يمكن أن يكون سالباً');
@@ -248,7 +248,7 @@ function openAddExpense() {
 }
 
 function saveExpense() {
-    const amount = parseFloat(document.getElementById('expense-amount').value);
+    const amount = parseFloat(cleanNumber(document.getElementById('expense-amount').value));
     let category = document.getElementById('expense-category').value;
     const memberId = document.getElementById('expense-member').value;
     const date = document.getElementById('expense-date').value;
@@ -284,7 +284,7 @@ function saveExpense() {
     }
 
     const memberName = memberId === 'general' ? 'مصروف عام' :
-        (appData.members.find(m => m.id === memberId) || {}).name || 'غير معروف';
+        (appData.members.find(m => String(m.id) === String(memberId)) || {}).name || 'غير معروف';
 
     appData.transactions.unshift({
         id: appData.nextId++,
@@ -318,7 +318,7 @@ function openAddIncome() {
 }
 
 function saveIncome() {
-    const amount = parseFloat(document.getElementById('income-amount').value);
+    const amount = parseFloat(cleanNumber(document.getElementById('income-amount').value));
     let source = document.getElementById('income-source').value;
     const date = document.getElementById('income-date').value;
     const note = document.getElementById('income-note').value.trim();
@@ -466,7 +466,7 @@ function renderTransactions() {
     }
 
     if (filterMember !== 'all') {
-        filtered = filtered.filter(t => t.memberId === filterMember);
+        filtered = filtered.filter(t => String(t.memberId) === String(filterMember));
     }
 
     if (filterDateFrom) {
@@ -535,7 +535,7 @@ function renderMembersTab() {
     const expenses = appData.transactions.filter(t => t.type === 'expense');
 
     container.innerHTML = appData.members.map(member => {
-        const memberExpenses = expenses.filter(t => t.memberId === member.id);
+        const memberExpenses = expenses.filter(t => String(t.memberId) === String(member.id));
         const total = memberExpenses.reduce((sum, t) => sum + t.amount, 0);
 
         const transactionsHtml = memberExpenses.length > 0 ?
@@ -799,6 +799,30 @@ function formatNumber(num) {
     return Math.round(num).toLocaleString('en-US');
 }
 
+// Remove commas from formatted number strings (for parsing)
+function cleanNumber(val) {
+    if (!val) return 0;
+    return parseFloat(String(val).replace(/,/g, '')) || 0;
+}
+
+// Format a number input live with thousands separators as user types
+function formatAmountInput(input) {
+    input.addEventListener('input', () => {
+        // Get the raw digits only
+        let raw = input.value.replace(/[^\d]/g, '');
+        if (raw.length === 0) {
+            input.value = '';
+            return;
+        }
+        // Format with commas
+        input.value = Number(raw).toLocaleString('en-US');
+    });
+    // On focus, select all for easy editing
+    input.addEventListener('focus', () => {
+        setTimeout(() => input.select(), 50);
+    });
+}
+
 function getInitials(name) {
     if (!name) return '?';
     const parts = name.trim().split(/\s+/);
@@ -909,6 +933,12 @@ if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').catch(() => {});
     });
 }
+
+// ===== LIVE FORMAT AMOUNT INPUTS =====
+
+document.querySelectorAll('#initial-balance, #expense-amount, #income-amount').forEach(input => {
+    formatAmountInput(input);
+});
 
 // ===== START APP =====
 
