@@ -56,7 +56,15 @@
             <header class="app-header">
                 <div class="header-row">
                     <h1>💰 ميزانية العائلة</h1>
-                    <button onclick="showExportModal()" class="btn-icon" title="تصدير البيانات">📤</button>
+                    <div class="header-buttons">
+                        <button onclick="showSyncModal()" class="btn-icon" title="مزامنة الأجهزة">🔄</button>
+                        <button onclick="showExportModal()" class="btn-icon" title="تصدير البيانات">📤</button>
+                    </div>
+                </div>
+                <!-- Sync Status Bar -->
+                <div class="sync-status-bar" id="sync-status-bar" style="display:none;">
+                    <span class="sync-dot" id="sync-dot"></span>
+                    <span class="sync-text" id="sync-text">متصل</span>
                 </div>
                 <div class="balance-card" id="balance-card">
                     <div class="balance-amount">
@@ -285,21 +293,74 @@
         </div>
     </div>
 
+    <!-- Sync Settings Modal -->
+    <div class="modal-overlay" id="modal-sync">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>🔄 ربط الأجهزة</h2>
+                <button class="modal-close" onclick="closeModal('modal-sync')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="sync-info-box">
+                    <p class="sync-info-title">🔗 كيف تربط جهازين؟</p>
+                    <p class="sync-info-text">عشان التغييرات تنعكس فوراً على جهازك الثاني، لازم تربطهم بقاعدة بيانات مشتركة عبر Firebase (مجاني من Google).</p>
+                </div>
+
+                <div class="setup-section-inmodal">
+                    <h3>📋 خطوات الإعداد (مرة وحدة بس):</h3>
+                    <ol class="steps-list">
+                        <li>افتح <a href="https://console.firebase.google.com" target="_blank" class="link">console.firebase.google.com</a> من الكمبيوتر</li>
+                        <li>اضغط "إنشاء مشروع" وسمّيه مثلاً "عائلتي"</li>
+                        <li>من القائمة اليسرى: Realtime Database → إنشاء قاعدة بيانات</li>
+                        <li>اختر المنطقة الأقرب (مثلاً europe-west1)</li>
+                        <li>في "القواعد" غيّرها ل:</li>
+                    </ol>
+                    <div class="code-block">{ "rules": { ".read": true, ".write": true } }</div>
+                    <ol class="steps-list" start="6">
+                        <li>من ⚙️ إعدادات المشروع → General</li>
+                        <li>انسخ <strong>رابط قاعدة البيانات</strong> (يبدأ بـ https://...firebaseio.com)</li>
+                        <li>لصقه هنا ↓</li>
+                    </ol>
+                </div>
+
+                <div class="form-group" style="margin-top:16px;">
+                    <label>🔗 رابط Firebase:</label>
+                    <input type="text" id="firebase-url" placeholder="https://xxxxx.firebaseio.com">
+                </div>
+
+                <div class="form-group">
+                    <label>🔑 رمز العائلة:</label>
+                    <input type="text" id="family-code" placeholder="أدخل رمز عائلتك (مثلاً: myfamily)">
+                    <p class="hint" style="margin-top:4px;">نفس الرمز يجب أن يُستخدم على كل الأجهزة</p>
+                </div>
+
+                <div id="sync-current-info" style="display:none;" class="sync-info-box">
+                    <p>✅ <strong id="sync-connected-label">متصل بـ:</strong> <span id="sync-connected-value"></span></p>
+                    <button onclick="disconnectSync()" class="btn-danger" style="margin-top:8px;width:100%;">🔒 قطع الاتصال</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal('modal-sync')" class="btn-secondary">إغلاق</button>
+                <button onclick="connectSync()" class="btn-primary">🔄 اتصال</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Export Modal -->
     <div class="modal-overlay" id="modal-export">
         <div class="modal">
             <div class="modal-header">
-                <h2>📤 تصدير البيانات</h2>
+                <h2>📤 تصدير / استيراد</h2>
                 <button class="modal-close" onclick="closeModal('modal-export')">✕</button>
             </div>
             <div class="modal-body">
-                <p class="export-hint">يمكنك مشاركة البيانات مع باقي أفراد العائلة عن طريق نسخها ولصقها في الجهاز الآخر</p>
+                <p class="export-hint">💡 نصيحة: استخدم زر "ربط الأجهزة" 🔄 للحصول على مزامنة فورية. هذا الزر مفيد فقط كنسخة احتياطية.</p>
                 <div class="export-actions">
-                    <button onclick="exportData()" class="btn-primary btn-large">📤 تصدير البيانات</button>
+                    <button onclick="exportData()" class="btn-primary">📤 نسخ البيانات</button>
                     <div class="import-section">
-                        <label>🔗 لصق البيانات المستوردة:</label>
-                        <textarea id="import-data" placeholder="الصق البيانات هنا..." rows="4"></textarea>
-                        <button onclick="importData()" class="btn-secondary">📥 استيراد البيانات</button>
+                        <label>📥 لصق البيانات:</label>
+                        <textarea id="import-data" placeholder="الصق البيانات هنا..." rows="3"></textarea>
+                        <button onclick="importData()" class="btn-secondary">📥 استيراد</button>
                     </div>
                 </div>
             </div>
@@ -310,14 +371,14 @@
     <div class="modal-overlay" id="modal-confirm">
         <div class="modal modal-small">
             <div class="modal-header">
-                <h2>⚠️ تأكيد الحذف</h2>
+                <h2>⚠️ تأكيد</h2>
             </div>
             <div class="modal-body">
-                <p id="confirm-message">هل أنت متأكد من حذف هذه العملية؟</p>
+                <p id="confirm-message">هل أنت متأكد؟</p>
             </div>
             <div class="modal-footer">
-                <button onclick="closeModal('modal-confirm')" class="btn-secondary">لا، إلغاء</button>
-                <button id="confirm-btn" class="btn-danger">نعم، احذف</button>
+                <button onclick="closeModal('modal-confirm')" class="btn-secondary">لا</button>
+                <button id="confirm-btn" class="btn-danger">نعم</button>
             </div>
         </div>
     </div>
@@ -325,6 +386,9 @@
     <!-- Toast -->
     <div id="toast" class="toast"></div>
 
+    <!-- Firebase SDK (compat for simplicity) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
